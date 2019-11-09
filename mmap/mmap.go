@@ -75,7 +75,7 @@ func (m *Mapping) Memory() []byte {
 }
 
 // ReadAt reads len(buf) bytes at the given offset from start of the mapped memory from the mapped memory.
-// If the given offset is outside of the accessible range ErrUnavailable will be returned.
+// If the given offset is outside of the accessible range the ErrUnavailable error will be returned.
 // If there are not enough bytes to read then will be read how many there is
 // and the number of read bytes will be returned with the ErrUnavailable error.
 // Otherwise len(buf) will be returned with no errors.
@@ -95,7 +95,7 @@ func (m *Mapping) ReadAt(buf []byte, offset int64) (int, error) {
 }
 
 // WriteAt writes len(buf) bytes at the given offset from start of the mapped memory into the mapped memory.
-// If the given offset is outside of the accessible range ErrUnavailable will be returned.
+// If the given offset is outside of the accessible range the ErrUnavailable error will be returned.
 // If there are not enough space to write all given bytes then will be written as much as possible
 // and the number of written bytes will be returned with the ErrUnavailable error.
 // Otherwise len(buf) will be returned with no errors.
