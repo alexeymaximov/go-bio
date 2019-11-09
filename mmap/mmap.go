@@ -1,4 +1,4 @@
-// Package mmap provides the non-thread-safe cross-platform memory mapped file I/O.
+// Package mmap provides the cross-platform memory mapped file I/O.
 package mmap
 
 import (

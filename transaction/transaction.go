@@ -1,4 +1,4 @@
-// Package transaction provides the non-thread-safe transaction on the raw byte data.
+// Package transaction provides the transaction on the raw byte data.
 package transaction
 
 import (
