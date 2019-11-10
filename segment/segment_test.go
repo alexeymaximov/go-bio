@@ -15,6 +15,17 @@ const (
 
 //------------------------------------------- TEST CASES ---------------------------------------------------------------
 
+// TestOffset tests the segment offset.
+// CASE: First byte MUST NOT be modified.
+func TestOffset(t *testing.T) {
+	data := make([]byte, 9)
+	seg := New(1, data[1:])
+	*seg.Uint64(1) = math.MaxUint64
+	if data[0] != 0 {
+		t.Fatalf("first byte must be zero, %d found", data[0])
+	}
+}
+
 // TestScanUint tests the unsigned integers scanning.
 // CASE: The read values MUST be exactly the same as the previously written.
 func TestScanUint(t *testing.T) {

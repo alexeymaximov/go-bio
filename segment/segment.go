@@ -39,7 +39,7 @@ type Slice struct {
 // Segment is a data segment.
 // See https://golang.org/ref/spec#Numeric_types for details.
 type Segment struct {
-	// offset specifies the starting offset of this segment.
+	// offset specifies the offset of this segment.
 	offset int64
 	// data specifies the descriptor of the raw byte data associated with this segment.
 	data Slice
