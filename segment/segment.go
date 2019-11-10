@@ -34,7 +34,7 @@ type Segment struct {
 	// offset specifies the offset of this segment.
 	offset int64
 	// data specifies the descriptor of the raw byte data associated with this segment.
-	// TODO: Choose the valid type for this field and it's initialization mechanism.
+	// TODO: Choose the correct type for this field and it's initialization mechanism.
 	data reflect.SliceHeader
 }
 
