@@ -35,7 +35,7 @@ type Slice struct {
 	// Len specifies the number of elements referred to by this slice.
 	Len int
 	// Cap specifies he number of elements in the underlying array
-	// (beginning at the element referred to by the slice pointer).
+	// (beginning at the element referred to by this slice pointer).
 	Cap int
 }
 
