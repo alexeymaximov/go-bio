@@ -20,8 +20,8 @@ var ErrLocked = fmt.Errorf("mmap: mapping already locked")
 // ErrNotLocked is the error which returns when the mapping memory pages are not locked.
 var ErrNotLocked = fmt.Errorf("mmap: mapping is not locked")
 
-// ErrReadOnly is the error which returns when tries to execute a write operation on the read-only mapping.
-var ErrReadOnly = fmt.Errorf("mmap: mapping is read only")
-
 // ErrOutOfBounds is the error which returns when tries to accessing the offset which is out of available bounds.
 var ErrOutOfBounds = fmt.Errorf("mmap: out of bounds")
+
+// ErrReadOnly is the error which returns when tries to execute a write operation on the read-only mapping.
+var ErrReadOnly = fmt.Errorf("mmap: mapping is read only")
