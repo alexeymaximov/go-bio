@@ -3,6 +3,7 @@ package mmap
 import (
 	"bytes"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -304,6 +305,32 @@ func TestFileOpening(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, testBuffer) != 0 {
+		t.Fatalf("data must be %q, %v found", testBuffer, buf)
+	}
+}
+
+// TestSegment tests the data segment.
+// CASE: The read data must be exactly the same as the previously written unsigned 32-bit integer.
+func TestSegment(t *testing.T) {
+	m, err := openTestMapping(t, ModeReadWrite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestEntity(t, m)
+	*m.Segment().Uint32(0) = math.MaxUint32 - 1
+	if err := m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	f, err := openTestFile(t, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestEntity(t, f)
+	buf := make([]byte, 4)
+	if _, err := f.ReadAt(buf, 0); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Compare(buf, []byte{254, 255, 255, 255}) != 0 {
 		t.Fatalf("data must be %q, %v found", testBuffer, buf)
 	}
 }
