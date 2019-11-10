@@ -1,6 +1,8 @@
 // Package mmap provides the cross-platform memory mapped file I/O.
 package mmap
 
+// TODO: Avoid possible offset overflows.
+
 import (
 	"github.com/alexeymaximov/go-bio/segment"
 	"github.com/alexeymaximov/go-bio/transaction"
@@ -45,7 +47,7 @@ type generic struct {
 	address uintptr
 	// memory specifies the byte slice which wraps the mapped memory.
 	memory []byte
-	// segment specifies the lazily initialized data segment on top of this mapping.
+	// segment specifies the lazily initialized data segment on top of the mapped memory.
 	segment *segment.Segment
 }
 
@@ -74,31 +76,31 @@ func (m *Mapping) Memory() []byte {
 	return m.memory
 }
 
+// Segment returns the data segment on top of the mapped memory.
+func (m *Mapping) Segment() *segment.Segment {
+	if m.segment == nil {
+		m.segment = segment.New(0, m.memory)
+	}
+	return m.segment
+}
+
 // ReadAt reads len(buf) bytes at the given offset from start of the mapped memory from the mapped memory.
-// If the given offset is outside of the accessible range the ErrUnavailable error will be returned.
-// If there are not enough bytes to read then will be read how many there is
-// and the number of read bytes will be returned with the ErrUnavailable error.
-// Otherwise len(buf) will be returned with no errors.
+// If the given offset is out of the available bounds or there are not enough bytes to read
+// the ErrOutOfBounds error will be returned. Otherwise len(buf) will be returned with no errors.
 // ReadAt implements the io.ReaderAt interface.
 func (m *Mapping) ReadAt(buf []byte, offset int64) (int, error) {
 	if m.memory == nil {
 		return 0, ErrClosed
 	}
-	if offset < 0 || offset >= int64(len(m.memory)) {
-		return 0, ErrUnavailable
+	if offset < 0 || offset+int64(len(buf)) > int64(len(m.memory)) {
+		return 0, ErrOutOfBounds
 	}
-	n := copy(buf, m.memory[offset:])
-	if n < len(buf) {
-		return n, ErrUnavailable
-	}
-	return n, nil
+	return copy(buf, m.memory[offset:]), nil
 }
 
 // WriteAt writes len(buf) bytes at the given offset from start of the mapped memory into the mapped memory.
-// If the given offset is outside of the accessible range the ErrUnavailable error will be returned.
-// If there are not enough space to write all given bytes then will be written as much as possible
-// and the number of written bytes will be returned with the ErrUnavailable error.
-// Otherwise len(buf) will be returned with no errors.
+// If the given offset is out of the available bounds or there are not enough space to write all given bytes
+// the ErrOutOfBounds error will be returned. Otherwise len(buf) will be returned with no errors.
 // WriteAt implements the io.WriterAt interface.
 func (m *Mapping) WriteAt(buf []byte, offset int64) (int, error) {
 	if m.memory == nil {
@@ -107,22 +109,10 @@ func (m *Mapping) WriteAt(buf []byte, offset int64) (int, error) {
 	if !m.writable {
 		return 0, ErrReadOnly
 	}
-	if offset < 0 || offset >= int64(len(m.memory)) {
-		return 0, ErrUnavailable
+	if offset < 0 || offset+int64(len(buf)) > int64(len(m.memory)) {
+		return 0, ErrOutOfBounds
 	}
-	n := copy(m.memory[offset:], buf)
-	if n < len(buf) {
-		return n, ErrUnavailable
-	}
-	return n, nil
-}
-
-// Segment returns the data segment on top of this mapping.
-func (m *Mapping) Segment() *segment.Segment {
-	if m.segment == nil {
-		m.segment = segment.New(m)
-	}
-	return m.segment
+	return copy(m.memory[offset:], buf), nil
 }
 
 // Begin starts and returns a new transaction.

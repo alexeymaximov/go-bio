@@ -23,5 +23,5 @@ var ErrNotLocked = fmt.Errorf("mmap: mapping is not locked")
 // ErrReadOnly is the error which returns when tries to execute a write operation on the read-only mapping.
 var ErrReadOnly = fmt.Errorf("mmap: mapping is read only")
 
-// ErrUnavailable is the error which returns when tries to accessing the data which is not available.
-var ErrUnavailable = fmt.Errorf("mmap: data not available")
+// ErrOutOfBounds is the error which returns when tries to accessing the offset which is out of available bounds.
+var ErrOutOfBounds = fmt.Errorf("mmap: out of bounds")

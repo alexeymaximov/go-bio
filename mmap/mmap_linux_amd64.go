@@ -133,15 +133,15 @@ func Open(fd uintptr, offset int64, length uintptr, mode Mode, flags Flag) (*Map
 	m.address = m.alignedAddress + uintptr(innerOffset)
 
 	// Wrapping the mapped memory by the byte slice.
-	var sliceHeader struct {
-		data uintptr
-		len  int
-		cap  int
+	var slice struct {
+		ptr uintptr
+		len int
+		cap int
 	}
-	sliceHeader.data = m.address
-	sliceHeader.len = int(length)
-	sliceHeader.cap = sliceHeader.len
-	m.memory = *(*[]byte)(unsafe.Pointer(&sliceHeader))
+	slice.ptr = m.address
+	slice.len = int(length)
+	slice.cap = slice.len
+	m.memory = *(*[]byte)(unsafe.Pointer(&slice))
 
 	runtime.SetFinalizer(m, (*Mapping).Close)
 	return m, nil

@@ -96,7 +96,7 @@ func TestWithOpenedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, testBuffer) != 0 {
-		t.Fatalf("buffer must be %q, %v found", testBuffer, buf)
+		t.Fatalf("data must be %q, %v found", testBuffer, buf)
 	}
 	if err := m.Close(); err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestWithClosedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, testBuffer) != 0 {
-		t.Fatalf("buffer must be %q, %v found", testBuffer, buf)
+		t.Fatalf("data must be %q, %v found", testBuffer, buf)
 	}
 	if err := m.Close(); err != nil {
 		t.Fatal(err)
@@ -151,7 +151,7 @@ func TestUnalignedOffset(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, offBuf) != 0 {
-		t.Fatalf("buffer must be %q, %v found", offBuf, buf)
+		t.Fatalf("data must be %q, %v found", offBuf, buf)
 	}
 }
 
@@ -180,7 +180,7 @@ func TestSharedSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, testBuffer) != 0 {
-		t.Fatalf("buffer must be %q, %v found", testBuffer, buf)
+		t.Fatalf("data must be %q, %v found", testBuffer, buf)
 	}
 }
 
@@ -209,13 +209,43 @@ func TestPrivateSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, zeroBuffer) != 0 {
-		t.Fatalf("buffer must be %q, %v found", zeroBuffer, buf)
+		t.Fatalf("data must be %q, %v found", zeroBuffer, buf)
 	}
 }
 
-// TestPartialIO tests the I/O operations partially beyond the mapped memory.
-// CASE: The data MUST be partially read and written and ErrUnavailable MUST be returned.
-func TestPartialIO(t *testing.T) {
+// TestPartialRead tests the reading beyond the mapped memory.
+// CASE 1: The ErrOutOfBounds MUST be returned.
+// CASE 2: The reading buffer MUST NOT be modified.
+func TestPartialRead(t *testing.T) {
+	f, err := openTestFile(t, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestEntity(t, f)
+	partLen := uintptr(testBufferLength - 1)
+	m, err := Open(f.Fd(), 0, partLen, ModeReadWrite, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestEntity(t, m)
+	if _, err := m.WriteAt(testBuffer[:partLen], 0); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, testBufferLength)
+	if _, err := m.ReadAt(buf, 0); err == nil {
+		t.Fatal("expected ErrOutOfBounds, no error found")
+	} else if err != ErrOutOfBounds {
+		t.Fatalf("expected ErrOutOfBounds, [%v] error found", err)
+	}
+	if bytes.Compare(buf, zeroBuffer) != 0 {
+		t.Fatalf("data must be %q, %v found", zeroBuffer, buf)
+	}
+}
+
+// TestPartialWrite tests the writing beyond the mapped memory.
+// CASE 1: The ErrOutOfBounds MUST be returned.
+// CASE 2: The mapped memory MUST NOT be modified.
+func TestPartialWrite(t *testing.T) {
 	f, err := openTestFile(t, true)
 	if err != nil {
 		t.Fatal(err)
@@ -228,20 +258,16 @@ func TestPartialIO(t *testing.T) {
 	}
 	defer closeTestEntity(t, m)
 	if _, err := m.WriteAt(testBuffer, 0); err == nil {
-		t.Fatal("expected ErrUnavailable, no error found")
-	} else if err != ErrUnavailable {
-		t.Fatalf("expected ErrUnavailable, [%v] error found", err)
+		t.Fatal("expected ErrOutOfBounds, no error found")
+	} else if err != ErrOutOfBounds {
+		t.Fatalf("expected ErrOutOfBounds, [%v] error found", err)
 	}
-	partBuf := make([]byte, testBufferLength)
-	copy(partBuf[0:partLen], testBuffer)
-	buf := make([]byte, testBufferLength)
-	if _, err := m.ReadAt(buf, 0); err == nil {
-		t.Fatal("expected ErrUnavailable, no error found")
-	} else if err != ErrUnavailable {
-		t.Fatalf("expected ErrUnavailable, [%v] error found", err)
+	partBuf := make([]byte, partLen)
+	if _, err := m.ReadAt(partBuf, 0); err != nil {
+		t.Fatal(err)
 	}
-	if bytes.Compare(buf, partBuf) != 0 {
-		t.Fatalf("buffer must be %v, %v found", partBuf, buf)
+	if bytes.Compare(partBuf, zeroBuffer[:partLen]) != 0 {
+		t.Fatalf("data must be %q, %v found", zeroBuffer, partBuf)
 	}
 }
 
@@ -278,6 +304,6 @@ func TestFileOpening(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Compare(buf, testBuffer) != 0 {
-		t.Fatalf("buffer must be %q, %v found", testBuffer, buf)
+		t.Fatalf("data must be %q, %v found", testBuffer, buf)
 	}
 }
