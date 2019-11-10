@@ -3,6 +3,7 @@ package mmap
 import (
 	"math"
 	"os"
+	"reflect"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -111,14 +112,10 @@ func Open(fd uintptr, offset int64, length uintptr, mode Mode, flags Flag) (*Map
 	m.address = m.alignedAddress + uintptr(innerOffset)
 
 	// Wrapping the mapped memory by the byte slice.
-	var slice struct {
-		ptr uintptr
-		len int
-		cap int
-	}
-	slice.ptr = m.address
-	slice.len = int(length)
-	slice.cap = slice.len
+	slice := reflect.SliceHeader{}
+	slice.Data = m.address
+	slice.Len = int(length)
+	slice.Cap = slice.Len
 	m.memory = *(*[]byte)(unsafe.Pointer(&slice))
 
 	runtime.SetFinalizer(m, (*Mapping).Close)

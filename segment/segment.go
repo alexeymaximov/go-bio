@@ -4,6 +4,7 @@ package segment
 import (
 	"encoding/binary"
 	"math"
+	"reflect"
 	"unsafe"
 )
 
@@ -27,32 +28,21 @@ const (
 	Complex128Size = 16
 )
 
-// Slice is a descriptor of an array segment.
-// See https://blog.golang.org/go-slices-usage-and-internals for details.
-type Slice struct {
-	// Ptr specifies the start address of this slice data.
-	Ptr uintptr
-	// Len specifies the number of elements referred to by this slice.
-	Len int
-	// Cap specifies he number of elements in the underlying array
-	// (beginning at the element referred to by this slice pointer).
-	Cap int
-}
-
 // Segment is a data segment.
 // See https://golang.org/ref/spec#Numeric_types for details.
 type Segment struct {
 	// offset specifies the offset of this segment.
 	offset int64
 	// data specifies the descriptor of the raw byte data associated with this segment.
-	data Slice
+	// TODO: Choose the valid type for this field and it's initialization mechanism.
+	data reflect.SliceHeader
 }
 
 // New returns a new data segment.
 func New(offset int64, data []byte) *Segment {
 	return &Segment{
 		offset: offset,
-		data:   *(*Slice)(unsafe.Pointer(&data)),
+		data:   *(*reflect.SliceHeader)(unsafe.Pointer(&data)),
 	}
 }
 
@@ -65,10 +55,10 @@ func (seg *Segment) Pointer(offset int64, length uintptr) uintptr {
 	if offset > math.MaxInt64-int64(length) || offset+int64(length) > int64(seg.data.Len) {
 		panic(Fault)
 	}
-	if uint64(offset) > uint64(MaxUintptr-seg.data.Ptr) {
+	if uint64(offset) > uint64(MaxUintptr-seg.data.Data) {
 		panic(Fault)
 	}
-	return seg.data.Ptr + uintptr(offset)
+	return seg.data.Data + uintptr(offset)
 }
 
 // Int8 returns a pointer to the signed 8-bit integer from this segment or panics at the access violation.
