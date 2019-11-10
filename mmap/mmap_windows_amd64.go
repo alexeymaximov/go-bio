@@ -8,9 +8,6 @@ import (
 	"unsafe"
 )
 
-// maxInt is the maximum platform dependent integer value.
-const maxInt = int(^uint(0) >> 1)
-
 // Mapping is a mapping of the file into the memory.
 type Mapping struct {
 	generic
@@ -42,7 +39,7 @@ func Open(fd uintptr, offset int64, length uintptr, mode Mode, flags Flag) (*Map
 	if offset < 0 {
 		return nil, ErrBadOffset
 	}
-	if length > uintptr(maxInt) {
+	if length > uintptr(MaxInt) {
 		return nil, ErrBadLength
 	}
 
@@ -91,6 +88,7 @@ func Open(fd uintptr, offset int64, length uintptr, mode Mode, flags Flag) (*Map
 	}
 	outerOffset := offset / pageSize
 	innerOffset := offset % pageSize
+	// ASSERT: uintptr is of the 64-bit length on the amd64 architecture.
 	m.alignedLength = uintptr(innerOffset) + length
 
 	maxSize := uint64(outerOffset) + uint64(m.alignedLength)
@@ -186,26 +184,30 @@ func (m *Mapping) Close() error {
 	if m.memory == nil {
 		return ErrClosed
 	}
+	var errs []error
 	if m.writable {
 		if err := m.Sync(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 	if m.locked {
 		if err := m.Unlock(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 	if err := syscall.UnmapViewOfFile(m.alignedAddress); err != nil {
-		return os.NewSyscallError("UnmapViewOfFile", err)
+		errs = append(errs, os.NewSyscallError("UnmapViewOfFile", err))
 	}
 	if err := syscall.CloseHandle(m.hMapping); err != nil {
-		return os.NewSyscallError("CloseHandle", err)
+		errs = append(errs, os.NewSyscallError("CloseHandle", err))
 	}
 	if err := syscall.CloseHandle(m.hFile); err != nil {
-		return os.NewSyscallError("CloseHandle", err)
+		errs = append(errs, os.NewSyscallError("CloseHandle", err))
 	}
 	*m = Mapping{}
 	runtime.SetFinalizer(m, nil)
+	if len(errs) > 0 {
+		return errs[0]
+	}
 	return nil
 }

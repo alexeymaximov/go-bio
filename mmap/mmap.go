@@ -1,12 +1,15 @@
 // Package mmap provides the cross-platform memory mapped file I/O.
 package mmap
 
-// TODO: Avoid possible offset overflows.
-
 import (
+	"math"
+
 	"github.com/alexeymaximov/go-bio/segment"
 	"github.com/alexeymaximov/go-bio/transaction"
 )
+
+// MaxInt is the maximum platform dependent signed integer.
+const MaxInt = int(^uint(0) >> 1)
 
 // Mode is a mapping mode.
 type Mode int
@@ -84,6 +87,15 @@ func (m *Mapping) Segment() *segment.Segment {
 	return m.segment
 }
 
+// access checks given offset and length to match the available bounds
+// and returns ErrOutOfBounds error at the access violation.
+func (m *Mapping) access(offset int64, length int) error {
+	if offset < 0 || offset > math.MaxInt64-int64(length) || offset+int64(length) > int64(len(m.memory)) {
+		return ErrOutOfBounds
+	}
+	return nil
+}
+
 // ReadAt reads len(buf) bytes at the given offset from start of the mapped memory from the mapped memory.
 // If the given offset is out of the available bounds or there are not enough bytes to read
 // the ErrOutOfBounds error will be returned. Otherwise len(buf) will be returned with no errors.
@@ -92,8 +104,8 @@ func (m *Mapping) ReadAt(buf []byte, offset int64) (int, error) {
 	if m.memory == nil {
 		return 0, ErrClosed
 	}
-	if offset < 0 || offset+int64(len(buf)) > int64(len(m.memory)) {
-		return 0, ErrOutOfBounds
+	if err := m.access(offset, len(buf)); err != nil {
+		return 0, err
 	}
 	return copy(buf, m.memory[offset:]), nil
 }
@@ -109,8 +121,8 @@ func (m *Mapping) WriteAt(buf []byte, offset int64) (int, error) {
 	if !m.writable {
 		return 0, ErrReadOnly
 	}
-	if offset < 0 || offset+int64(len(buf)) > int64(len(m.memory)) {
-		return 0, ErrOutOfBounds
+	if err := m.access(offset, len(buf)); err != nil {
+		return 0, err
 	}
 	return copy(m.memory[offset:], buf), nil
 }
